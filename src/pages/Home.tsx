@@ -1,31 +1,12 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-// useRef is used in StatsBar and scroll observer
 import { Link } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { useAdmin } from '@/context/AdminContext';
 import { sets } from '@/data/sets';
+import { rarityLabel, rarityStyle } from '@/utils/rarity';
+import CardOfTheDay from '@/components/CardOfTheDay';
+import SkeletonCard from '@/components/SkeletonCard';
 import type { TcgSet } from '@/types';
-
-/* ─── Helpers ───────────────────────────────────────────────── */
-const rarityLabel: Record<string, string> = {
-  secret: 'SEC',
-  manga: 'Manga',
-  super: 'SR',
-  alternative: 'AA',
-  rare: 'R',
-  uncommon: 'UC',
-  common: 'C',
-  leader: 'L',
-};
-
-const rarityStyle: Record<string, React.CSSProperties> = {
-  secret: { background: 'linear-gradient(135deg,#ffd700,#ffed4e)', color: '#000' },
-  manga: { background: '#000', color: '#fff', border: '1px solid gold' },
-  super: { background: 'linear-gradient(135deg,#ffd700,#ffed4e)', color: '#000' },
-  alternative: { background: 'linear-gradient(135deg,#ffd700,#ffed4e)', color: '#000' },
-  rare: { background: 'rgba(255,61,61,0.15)', color: '#ff3d3d' },
-  leader: { background: 'rgba(255,255,255,0.1)', color: '#fff' },
-  default: { background: 'rgba(255,255,255,0.08)', color: '#e4e4e7' },
-};
 
 const tagStyleMap: Record<string, React.CSSProperties> = {
   primary: { background: 'rgba(255,61,61,0.1)', color: '#ff3d3d' },
@@ -192,6 +173,13 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(6);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate initial load
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Scroll fade-in observer
   useEffect(() => {
@@ -220,6 +208,22 @@ export default function Home() {
       return matchesSearch && matchesFilter;
     });
   }, [searchTerm, activeFilter, products]);
+
+  // Filter counts (based on searchTerm only, not activeFilter)
+  const filterCounts = useMemo(() => {
+    const searched = products.filter(p =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.set.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.number.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const counts: Record<string, number> = { all: searched.length };
+    filters.forEach(f => {
+      if (f.id !== 'all') {
+        counts[f.id] = searched.filter(p => p.rarity === f.id || p.type === f.id).length;
+      }
+    });
+    return counts;
+  }, [searchTerm, products]);
 
   const featuredSets = sets.filter(s => s.inStock).slice(0, 3);
 
@@ -375,6 +379,11 @@ export default function Home() {
       {/* ── STATS BAR ────────────────────────────────────────── */}
       <StatsBar />
 
+      {/* ── CARD OF THE DAY ──────────────────────────────────── */}
+      <div className="max-w-[1400px] mx-auto px-8 pt-16">
+        <CardOfTheDay products={products} />
+      </div>
+
       {/* ── FEATURED SETS ────────────────────────────────────── */}
       <section id="sets" className="max-w-[1400px] mx-auto px-8 py-24">
         <div className="scroll-fade flex justify-between items-end mb-12">
@@ -447,6 +456,15 @@ export default function Home() {
             className="bg-transparent border-0 outline-none text-base w-full"
             style={{ color: '#e4e4e7' }}
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="flex items-center justify-center w-6 h-6 rounded-full cursor-pointer border-0 flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.1)', color: '#71717a' }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -455,7 +473,7 @@ export default function Home() {
             <button
               key={f.id}
               onClick={() => { setActiveFilter(f.id); setVisibleCount(6); }}
-              className="px-4 py-2 rounded-xl text-sm font-medium border cursor-pointer transition-all duration-300"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border cursor-pointer transition-all duration-300"
               style={
                 activeFilter === f.id
                   ? { background: '#ff3d3d', borderColor: '#ff3d3d', color: '#fff' }
@@ -463,66 +481,81 @@ export default function Home() {
               }
             >
               {f.label}
+              {filterCounts[f.id] !== undefined && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                  style={
+                    activeFilter === f.id
+                      ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
+                      : { background: 'rgba(255,255,255,0.08)', color: '#71717a' }
+                  }
+                >
+                  {filterCounts[f.id]}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Cards Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {filteredProducts.slice(0, visibleCount).map(product => (
-            <Link
-              key={product.id}
-              to={`/product/${product.id}`}
-              className="no-underline group"
-            >
-              <div
-                className="relative rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300"
-                style={{
-                  aspectRatio: '2.5/3.5',
-                  background: 'linear-gradient(135deg,#1e1e2e 0%,#2d2d44 100%)',
-                  borderColor: 'rgba(255,255,255,0.1)',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-10px) rotateY(5deg)';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(0,0,0,0.5)';
-                  (e.currentTarget as HTMLDivElement).style.borderColor = '#ffd700';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.transform = 'none';
-                  (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
-                  (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.1)';
-                }}
-              >
-                {product.image && (
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover absolute inset-0"
-                    style={{ opacity: 0.6 }}
-                  />
-                )}
-                {/* Rarity badge */}
-                <span
-                  className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold z-10"
-                  style={rarityStyle[product.rarity] || rarityStyle.default}
+          {isLoading
+            ? Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)
+            : filteredProducts.slice(0, visibleCount).map(product => (
+                <Link
+                  key={product.id}
+                  to={`/product/${product.id}`}
+                  className="no-underline group"
                 >
-                  {rarityLabel[product.rarity] || product.rarity.toUpperCase()}
-                </span>
-                {/* Price */}
-                <div
-                  className="absolute bottom-0 left-0 right-0 p-3 z-10"
-                  style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.9),transparent)' }}
-                >
-                  <div className="text-sm font-bold truncate" style={{ color: '#ffd700' }}>
-                    € {product.price.toFixed(2)}
+                  <div
+                    className="relative rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300"
+                    style={{
+                      aspectRatio: '2.5/3.5',
+                      background: 'linear-gradient(135deg,#1e1e2e 0%,#2d2d44 100%)',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-10px) rotateY(5deg)';
+                      (e.currentTarget as HTMLDivElement).style.boxShadow = '0 20px 40px rgba(0,0,0,0.5)';
+                      (e.currentTarget as HTMLDivElement).style.borderColor = '#ffd700';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLDivElement).style.transform = 'none';
+                      (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+                      (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.1)';
+                    }}
+                  >
+                    {product.image && (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover absolute inset-0"
+                        style={{ opacity: 0.6 }}
+                      />
+                    )}
+                    {/* Rarity badge */}
+                    <span
+                      className="absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold z-10"
+                      style={rarityStyle[product.rarity] || rarityStyle['default']}
+                    >
+                      {rarityLabel[product.rarity] || product.rarity.toUpperCase()}
+                    </span>
+                    {/* Price */}
+                    <div
+                      className="absolute bottom-0 left-0 right-0 p-3 z-10"
+                      style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.9),transparent)' }}
+                    >
+                      <div className="text-sm font-bold truncate" style={{ color: '#ffd700' }}>
+                        € {product.price.toFixed(2)}
+                      </div>
+                      <div className="text-xs truncate mt-0.5" style={{ color: '#a1a1aa' }}>
+                        {product.name}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs truncate mt-0.5" style={{ color: '#a1a1aa' }}>
-                    {product.name}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+                </Link>
+              ))
+          }
         </div>
 
         {filteredProducts.length === 0 && (

@@ -30,10 +30,19 @@ export interface Product {
   featuredOrder?: number;
 }
 
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;       // emoji
+  earnedAt?: string;  // ISO date string; undefined = not yet earned
+}
+
 export interface CollectionState {
   owned: number[];
   wishlist: number[];
   cart: number[];
+  achievements: Achievement[];
 }
 
 export interface User {

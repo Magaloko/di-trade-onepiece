@@ -4,6 +4,7 @@ import { CollectionProvider } from '@/context/CollectionContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ToastProvider } from '@/components/Toaster';
 import Navbar from '@/components/Navbar';
+import AchievementToast from '@/components/AchievementToast';
 import Home from '@/pages/Home';
 import Collection from '@/pages/Collection';
 import ProductDetail from '@/pages/ProductDetail';
@@ -30,6 +31,7 @@ function App() {
                 </Routes>
               </div>
             </Router>
+            <AchievementToast />
           </ToastProvider>
         </AdminProvider>
       </CollectionProvider>
