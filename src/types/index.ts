@@ -54,3 +54,25 @@ export interface FeaturedCard {
   type: FeaturedType;
   badge: string;
 }
+
+export type SetTagStyle = 'primary' | 'gold' | 'muted' | 'white';
+
+export interface SetTag {
+  label: string;
+  style: SetTagStyle;
+}
+
+export interface TcgSet {
+  id: number;
+  code: string;
+  name: string;
+  emoji: string;
+  bgGradient: string;
+  tags: SetTag[];
+  description: string;
+  cardCount: number;
+  specialCount: number;
+  specialLabel: string;
+  boxPrice: number;
+  inStock: boolean;
+}

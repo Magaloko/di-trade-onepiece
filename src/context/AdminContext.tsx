@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import type { Product, FeaturedType } from '@/types';
+import type { Product, FeaturedType, TcgSet } from '@/types';
 import { products, updateProduct as updateProductData, addProduct as addProductData, deleteProduct as deleteProductData } from '@/data/products';
+import { sets as initialSets, addSet as addSetData, updateSet as updateSetData, deleteSet as deleteSetData } from '@/data/sets';
 
 interface AdminContextType {
   // Product Management
@@ -9,11 +10,17 @@ interface AdminContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   deleteProduct: (id: number) => void;
   toggleFeatured: (id: number, featured: boolean, featuredType?: FeaturedType, featuredOrder?: number) => void;
-  
+
   // Price Management
   updatePrice: (id: number, newPrice: number) => void;
   bulkUpdatePrices: (percentageChange: number) => void;
-  
+
+  // Sets Management
+  sets: TcgSet[];
+  addSet: (set: Omit<TcgSet, 'id'>) => void;
+  updateSet: (id: number, updates: Partial<TcgSet>) => void;
+  deleteSet: (id: number) => void;
+
   // Stats
   getDashboardStats: () => {
     totalProducts: number;
@@ -22,8 +29,10 @@ interface AdminContextType {
     avgPrice: number;
     priceUpCount: number;
     priceDownCount: number;
+    totalSets: number;
+    inStockSets: number;
   };
-  
+
   // UI State
   selectedProduct: Product | null;
   setSelectedProduct: (product: Product | null) => void;
@@ -37,10 +46,12 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [productList, setProductList] = useState<Product[]>(products);
+  const [setList, setSetList] = useState<TcgSet[]>(initialSets);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // Product handlers
   const handleUpdateProduct = useCallback((id: number, updates: Partial<Product>) => {
     const updated = updateProductData(id, updates);
     if (updated) {
@@ -75,7 +86,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const handleUpdatePrice = useCallback((id: number, newPrice: number) => {
     const product = productList.find(p => p.id === id);
     if (product) {
-      handleUpdateProduct(id, { 
+      handleUpdateProduct(id, {
         price: newPrice,
         oldPrice: product.price,
         trend: newPrice > product.price ? 'up' : newPrice < product.price ? 'down' : 'stable'
@@ -90,6 +101,26 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     });
   }, [productList, handleUpdatePrice]);
 
+  // Sets handlers
+  const handleAddSet = useCallback((set: Omit<TcgSet, 'id'>) => {
+    const newSet = addSetData(set);
+    setSetList(prev => [...prev, newSet]);
+  }, []);
+
+  const handleUpdateSet = useCallback((id: number, updates: Partial<TcgSet>) => {
+    const updated = updateSetData(id, updates);
+    if (updated) {
+      setSetList(prev => prev.map(s => s.id === id ? updated : s));
+    }
+  }, []);
+
+  const handleDeleteSet = useCallback((id: number) => {
+    const success = deleteSetData(id);
+    if (success) {
+      setSetList(prev => prev.filter(s => s.id !== id));
+    }
+  }, []);
+
   const getDashboardStats = useCallback(() => {
     const totalProducts = productList.length;
     const totalValue = productList.reduce((sum, p) => sum + p.price, 0);
@@ -97,16 +128,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     const avgPrice = totalProducts > 0 ? totalValue / totalProducts : 0;
     const priceUpCount = productList.filter(p => p.trend === 'up').length;
     const priceDownCount = productList.filter(p => p.trend === 'down').length;
+    const totalSets = setList.length;
+    const inStockSets = setList.filter(s => s.inStock).length;
 
-    return {
-      totalProducts,
-      totalValue,
-      featuredCount,
-      avgPrice,
-      priceUpCount,
-      priceDownCount
-    };
-  }, [productList]);
+    return { totalProducts, totalValue, featuredCount, avgPrice, priceUpCount, priceDownCount, totalSets, inStockSets };
+  }, [productList, setList]);
 
   return (
     <AdminContext.Provider value={{
@@ -117,13 +143,17 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       toggleFeatured: handleToggleFeatured,
       updatePrice: handleUpdatePrice,
       bulkUpdatePrices: handleBulkUpdatePrices,
+      sets: setList,
+      addSet: handleAddSet,
+      updateSet: handleUpdateSet,
+      deleteSet: handleDeleteSet,
       getDashboardStats,
       selectedProduct,
       setSelectedProduct,
       isEditModalOpen,
       setIsEditModalOpen,
       isAddModalOpen,
-      setIsAddModalOpen
+      setIsAddModalOpen,
     }}>
       {children}
     </AdminContext.Provider>
