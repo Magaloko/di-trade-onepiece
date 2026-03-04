@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Flame, Github, Mail, ExternalLink } from 'lucide-react';
+import { Flame, Github } from 'lucide-react';
 
 export default function Footer() {
   return (
