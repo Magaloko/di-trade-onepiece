@@ -4,6 +4,8 @@ import { CollectionProvider } from '@/context/CollectionContext';
 import { AdminProvider } from '@/context/AdminContext';
 import { ToastProvider } from '@/components/Toaster';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import ScrollToTop from '@/components/ScrollToTop';
 import Home from '@/pages/Home';
 import Collection from '@/pages/Collection';
 import ProductDetail from '@/pages/ProductDetail';
@@ -18,16 +20,20 @@ function App() {
         <AdminProvider>
           <ToastProvider>
             <Router>
-              <div className="min-h-screen bg-background">
+              <div className="min-h-screen bg-background flex flex-col">
                 <Navbar />
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/collection" element={<Collection />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/collection" element={<Collection />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <ScrollToTop />
               </div>
             </Router>
           </ToastProvider>

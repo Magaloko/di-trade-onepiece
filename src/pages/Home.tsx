@@ -1,24 +1,32 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, TrendingUp, Flame } from 'lucide-react';
+import { Search, Filter, TrendingUp, Flame, ArrowUpDown } from 'lucide-react';
 import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import FeaturedCardsSlider from '@/components/FeaturedCardsSlider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name-asc');
 
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    const filtered = products.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           product.set.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           product.number.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesFilter = activeFilter === 'all' || 
+
+      const matchesFilter = activeFilter === 'all' ||
                            (activeFilter === 'secret' && product.rarity === 'secret') ||
                            (activeFilter === 'manga' && product.rarity === 'manga') ||
                            product.type === activeFilter ||
@@ -26,7 +34,21 @@ export default function Home() {
 
       return matchesSearch && matchesFilter;
     });
-  }, [searchTerm, activeFilter]);
+
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'price-asc': return a.price - b.price;
+        case 'price-desc': return b.price - a.price;
+        case 'name-asc': return a.name.localeCompare(b.name);
+        case 'name-desc': return b.name.localeCompare(a.name);
+        case 'rarity': {
+          const rarityOrder: Record<string, number> = { manga: 0, secret: 1, super: 2, rare: 3, uncommon: 4, common: 5 };
+          return (rarityOrder[a.rarity] ?? 6) - (rarityOrder[b.rarity] ?? 6);
+        }
+        default: return 0;
+      }
+    });
+  }, [searchTerm, activeFilter, sortBy]);
 
   const filters = [
     { id: 'all', label: 'Alle' },
@@ -106,19 +128,34 @@ export default function Home() {
             />
           </div>
           
-          <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            <Filter className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-            {filters.map(filter => (
-              <Button
-                key={filter.id}
-                variant={activeFilter === filter.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setActiveFilter(filter.id)}
-                className="rounded-full whitespace-nowrap"
-              >
-                {filter.label}
-              </Button>
-            ))}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide flex-1">
+              <Filter className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+              {filters.map(filter => (
+                <Button
+                  key={filter.id}
+                  variant={activeFilter === filter.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setActiveFilter(filter.id)}
+                  className="rounded-full whitespace-nowrap"
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[180px] flex-shrink-0">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Sortieren" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name-asc">Name A-Z</SelectItem>
+                <SelectItem value="name-desc">Name Z-A</SelectItem>
+                <SelectItem value="price-asc">Preis aufsteigend</SelectItem>
+                <SelectItem value="price-desc">Preis absteigend</SelectItem>
+                <SelectItem value="rarity">Seltenheit</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

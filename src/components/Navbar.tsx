@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Heart, ShoppingCart, User, Flame, LayoutDashboard } from 'lucide-react';
+import { Search, Heart, ShoppingCart, User, Flame, LayoutDashboard, Menu, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCollection } from '@/context/CollectionContext';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,14 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const { state } = useCollection();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
+
+  const navLinks = [
+    { path: '/', label: 'Marketplace' },
+    { path: '/collection', label: 'Meine Sammlung' },
+  ];
 
   return (
     <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border">
@@ -29,19 +36,17 @@ export default function Navbar() {
             </span>
           </Link>
 
+          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <Link 
-              to="/" 
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/') ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              Marketplace
-            </Link>
-            <Link 
-              to="/collection" 
-              className={`text-sm font-medium transition-colors hover:text-primary ${isActive('/collection') ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              Meine Sammlung
-            </Link>
+            {navLinks.map(link => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`text-sm font-medium transition-colors hover:text-primary ${isActive(link.path) ? 'text-primary' : 'text-muted-foreground'}`}
+              >
+                {link.label}
+              </Link>
+            ))}
             <span className="text-muted-foreground/50 cursor-not-allowed text-sm font-medium">
               Preise
             </span>
@@ -51,10 +56,10 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="rounded-xl">
+            <Button variant="outline" size="icon" className="rounded-xl hidden sm:flex">
               <Search className="w-5 h-5" />
             </Button>
-            
+
             <Link to="/collection">
               <Button variant="outline" size="icon" className="rounded-xl relative">
                 <Heart className="w-5 h-5" />
@@ -113,9 +118,43 @@ export default function Navbar() {
                 </Button>
               </Link>
             )}
+
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden rounded-xl"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl animate-in fade-in slide-in-from-right">
+          <div className="px-4 py-4 space-y-1">
+            {navLinks.map(link => (
+              <Link
+                key={link.path}
+                to={link.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                  isActive(link.path)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="px-4 py-3 text-sm text-muted-foreground/50">Preise (bald)</div>
+            <div className="px-4 py-3 text-sm text-muted-foreground/50">Deals (bald)</div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
